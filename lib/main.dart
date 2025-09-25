@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
 import 'core/database/database_helper.dart';
-import 'data/sample_data/database_seeder.dart';
+import 'data/data/database_seeder.dart';
 import 'features/test/providers/test_provider.dart';
 
 void main() async {

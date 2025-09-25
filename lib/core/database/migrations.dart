@@ -16,6 +16,8 @@ class DatabaseMigrations {
     // Create answer details table
     await db.execute(DatabaseConstants.createAnswerDetailsTable);
 
+    // Create answer users table
+    await db.execute(DatabaseConstants.createUsersTable);
     // Create indexes
     for (final index in DatabaseConstants.createIndexes) {
       await db.execute(index);

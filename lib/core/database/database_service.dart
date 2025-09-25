@@ -20,6 +20,20 @@ class DatabaseService {
     return await _dbHelper.insert(DatabaseConstants.tableTopics, topic);
   }
 
+  // Thêm method updateTopic
+  Future<void> updateTopic(Map<String, dynamic> topic) async {
+    try {
+      await _dbHelper.update(
+        DatabaseConstants.tableTopics,
+        topic,
+        where: '${DatabaseConstants.topicId} = ?',
+        whereArgs: [topic[DatabaseConstants.topicId]],
+      );
+    } catch (e) {
+      throw Exception('Failed to update topic: $e');
+    }
+  }
+
   // Questions operations
   Future<List<Map<String, dynamic>>> getQuestionsByTopic(int topicId) async {
     return await _dbHelper.query(
@@ -43,7 +57,7 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getMandatoryQuestions({int? topicId}) async {
     String whereClause = '${DatabaseConstants.questionMandatory} = ?';
-    List<dynamic> whereArgs = [1];  // ← Args tương ứng
+    List<dynamic> whereArgs = [1];
 
     if (topicId != null) {
       whereClause += ' AND ${DatabaseConstants.questionTopicId} = ?';
@@ -56,7 +70,6 @@ class DatabaseService {
       whereArgs: whereArgs,
     );
   }
-
 
   Future<List<Map<String, dynamic>>> getExamQuestions() async {
     // Get mandatory questions first
@@ -178,14 +191,85 @@ class DatabaseService {
   }
 
   Future<void> updateTopicQuestionCounts() async {
-    final topics = await getAllTopics();
-    for (final topic in topics) {
-      final count = await getQuestionCountByTopic(topic['id']);
-      await _dbHelper.update(DatabaseConstants.tableTopics, {
-        'id': topic['id'],
-        'question_count': count,
-        ...topic,
-      });
+    try {
+      await _dbHelper.rawUpdate('''
+        UPDATE ${DatabaseConstants.tableTopics}
+        SET ${DatabaseConstants.topicQuestionCount} = (
+          SELECT COUNT(*)
+          FROM ${DatabaseConstants.tableQuestions}
+          WHERE ${DatabaseConstants.questionTopicId} = ${DatabaseConstants.tableTopics}.${DatabaseConstants.topicId}
+        )
+      ''');
+
+      print('Updated all topic question counts using SQL');
+    } catch (e) {
+      print('SQL update failed, trying manual update: $e');
+
+      await _updateTopicQuestionCountsManually();
+    }
+  }
+
+  Future<void> _updateTopicQuestionCountsManually() async {
+    try {
+      final topics = await getAllTopics();
+
+      for (final topic in topics) {
+        final topicId = topic[DatabaseConstants.topicId];
+        final questionCount = await getQuestionCountByTopic(topicId);
+
+        await _dbHelper.update(
+          DatabaseConstants.tableTopics,
+          {DatabaseConstants.topicQuestionCount: questionCount},
+          where: '${DatabaseConstants.topicId} = ?',
+          whereArgs: [topicId],
+        );
+
+        print('Updated topic $topicId: $questionCount questions');
+      }
+
+      print('Manually updated all topic question counts');
+    } catch (e) {
+      print('Manual update failed: $e');
+      throw e;
+    }
+  }
+
+  Future<void> debugTopicQuestionCounts() async {
+    try {
+      final topics = await getAllTopics();
+      print('=== DEBUG: Topic Question Counts ===');
+
+      for (final topic in topics) {
+        final topicId = topic[DatabaseConstants.topicId];
+        final storedCount = topic[DatabaseConstants.topicQuestionCount] ?? 0;
+        final actualCount = await getQuestionCountByTopic(topicId);
+
+        print('Topic $topicId (${topic[DatabaseConstants.topicTitle]}):');
+        print('  Stored: $storedCount, Actual: $actualCount');
+
+        if (storedCount != actualCount) {
+          print('  ⚠️ MISMATCH DETECTED!');
+        }
+      }
+
+      print('=====================================');
+    } catch (e) {
+      print('Error debugging topic question counts: $e');
+    }
+  }
+
+  Future<void> forceUpdateTopicQuestionCounts() async {
+    try {
+      print('🔄 Force updating topic question counts...');
+
+      await _updateTopicQuestionCountsManually();
+
+      await debugTopicQuestionCounts();
+
+      print('✅ Force update completed');
+    } catch (e) {
+      print('❌ Force update failed: $e');
+      throw e;
     }
   }
 }

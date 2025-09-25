@@ -78,7 +78,7 @@ class DatabaseHelper {
     return results.isNotEmpty ? results.first : null;
   }
 
-  Future<int> update(String table, Map<String, dynamic> row) async {
+  Future<int> update(String table, Map<String, dynamic> row, {required List whereArgs, required String where}) async {
     final db = await database;
     final id = row['id'];
     return await db.update(

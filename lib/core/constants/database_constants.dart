@@ -8,6 +8,20 @@ class DatabaseConstants {
   static const String tableQuestions = 'questions';
   static const String tableTestResults = 'test_results';
   static const String tableAnswerDetails = 'answer_details';
+  static const String tableUsers = 'users';
+
+// User Table Columns
+  static const String userId = 'id';
+  static const String userUsername = 'username';
+  static const String userPassword = 'password';
+  static const String userFullname = 'fullname';
+  static const String userEmail = 'email';
+  static const String userPhone = 'phone';
+  static const String userGender = 'gender';
+  static const String userBirthday = 'birthday';
+  static const String userStatus = 'status';
+  static const String userCreatedAt = 'created_at';
+  static const String userUpdatedAt = 'updated_at';
 
   // Topics Table Columns
   static const String topicId = 'id';
@@ -60,6 +74,22 @@ class DatabaseConstants {
       $topicQuestionCount INTEGER DEFAULT 0
     )
   ''';
+  // Create Users Table Query
+  static const String createUsersTable = '''
+  CREATE TABLE $tableUsers (
+    $userId INTEGER PRIMARY KEY AUTOINCREMENT,
+    $userUsername TEXT NOT NULL UNIQUE,
+    $userPassword TEXT NOT NULL,
+    $userFullname TEXT,
+    $userEmail TEXT UNIQUE,
+    $userPhone TEXT,
+    $userGender TEXT CHECK ($userGender IN ('M', 'F')),
+    $userBirthday TEXT,
+    $userStatus INTEGER DEFAULT 1 CHECK ($userStatus IN (0,1,2)),
+    $userCreatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+    $userUpdatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+  )
+''';
 
   static const String createQuestionsTable = '''
     CREATE TABLE $tableQuestions (
